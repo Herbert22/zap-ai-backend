@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+requests
+python-multipart
+openai
+redis
+sqlalchemy
+psycopg2-binary
+ffmpeg-python
