@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from src.services.audio_processor import processar_audio
+from src.services.ai_processor import gerar_resposta_ia
 
 app = FastAPI(title="Zap AI Brain")
 
@@ -10,17 +11,30 @@ async def receive_webhook(request: Request):
     # Verifica se é mensagem
     if "event" in data and data["event"] == "onMessage":
         msg = data.get("data", {})
+        texto_entrada = ""
         
-        # Se for áudio (ptt = Push To Talk / Áudio gravado)
-        if msg.get("type") == "ptt" or msg.get("type") == "audio":
+        # 1. Processar Entrada (Texto ou Áudio)
+        if msg.get("type") == "chat":
+            texto_entrada = msg.get("body", "")
+            
+        elif msg.get("type") == "ptt" or msg.get("type") == "audio":
             print("🎤 Áudio recebido! Processando...")
-            # Pega URL (Nota: WPPConnect pode mandar base64 ou URL dependendo da config)
-            # Vamos assumir que configuramos para mandar URL de download
             url = msg.get("mediaUrl") 
             if url:
-                resultado = processar_audio(url)
-                print(f"📝 Transcrição: {resultado}")
-                return resultado
+                transcricao = processar_audio(url)
+                if "texto" in transcricao:
+                    texto_entrada = transcricao["texto"]
+                    print(f"📝 Transcrição: {texto_entrada}")
+        
+        # 2. Gerar Resposta (Se tiver texto válido)
+        if texto_entrada:
+            # TODO: Buscar prompt do cliente no banco
+            prompt_teste = "Você é um assistente de advogado. Responda de forma curta e formal."
+            resposta = gerar_resposta_ia(texto_entrada, prompt_teste)
+            print(f"🤖 IA Respondeu: {resposta}")
+            
+            # TODO: Enviar resposta de volta pro WPPConnect
+            return {"reply": resposta}
     
     return {"status": "ignored"}
 
